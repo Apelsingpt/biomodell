@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="sv">
-    <!-- Hårdkodad enligt gemini ;-) -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -50,7 +49,7 @@
     <br>
     <button id="predictBtn" onclick="runPrediction()" disabled>⏳ Initierar...</button>
     
-    <div id="result">Resultatet visas här:</div>
+    <div id="result">Resultatet visas här...</div>
 
     <div id="debug-box">
         <div class="log-entry"><strong>Debug-logg startad...</strong></div>
@@ -59,7 +58,6 @@
     <script>
         let model;
         let metadata;
-        // VIKTIGT: Vi tvingar denna till 256 eftersom din modell kräver det
         const SEQUENCE_LENGTH = 256; 
 
         function log(message, type = 'info') {
@@ -85,14 +83,14 @@
                 log("✅ Metadata laddad.", 'success');
 
                 log("2. Försöker hämta 'tfjs_model/model.json'...");
-                model = await tf.loadLayersModel('tfjs_model/model.json');
+                // Här är fixen: strict: false gör att modellen laddas även om inputLayer är lite konstig
+                model = await tf.loadLayersModel('tfjs_model/model.json', {strict: false});
                 log("✅ AI-modellen laddad!", 'success');
 
                 const btn = document.getElementById('predictBtn');
                 btn.disabled = false;
                 btn.innerText = "Analysera text";
                 
-                // Värm upp modellen med korrekt shape [1, 256]
                 tf.tidy(() => {
                     model.predict(tf.zeros([1, SEQUENCE_LENGTH]));
                 });
@@ -114,11 +112,8 @@
             const OOV_INDEX = 1; 
             const PAD_INDEX = 0; 
 
-            const sequence = words.map(word => {
-                return wordIndex[word] || OOV_INDEX;
-            });
+            const sequence = words.map(word => wordIndex[word] || OOV_INDEX);
 
-            // Padda till exakt 256
             const paddedSequence = new Array(SEQUENCE_LENGTH).fill(PAD_INDEX);
             for (let i = 0; i < Math.min(sequence.length, SEQUENCE_LENGTH); i++) {
                 paddedSequence[i] = sequence[i];
@@ -134,9 +129,6 @@
                 log(`Analyserar: "${text}"...`);
                 
                 const inputIndices = tokenize(text);
-                
-                // HÄR VAR FELET INNAN:
-                // Vi använder nu SEQUENCE_LENGTH (256) istället för metadata.max_len
                 const inputTensor = tf.tensor2d([inputIndices], [1, SEQUENCE_LENGTH]);
 
                 const prediction = model.predict(inputTensor);
@@ -165,4 +157,3 @@
     </script>
 </body>
 </html>
-
