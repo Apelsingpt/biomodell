@@ -132,7 +132,7 @@
             }
           }
         ],
-        "build_input_shape": [1, 256]
+        "build_input_shape": [null, 256]
       }
     }
   },
